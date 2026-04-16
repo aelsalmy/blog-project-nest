@@ -3,9 +3,11 @@ import { Observable } from "rxjs";
 import { AuthService } from "./auth.service";
 import { Request } from 'express'
 import { JwtPayload } from "jsonwebtoken";
+import { Role } from "src/enumns/roles.enum";
 
 export interface AuthRequest extends Request {
-  userId: number;
+  userId: number
+  roles: Role[]
 }
 
 @Injectable()
@@ -31,6 +33,7 @@ export class AuthGuard implements CanActivate{
     try{
       const payload = await this.authService.verifyAccessToken(token) as JwtPayload
       request.userId = payload.userId 
+      request.roles = payload.roles
       return true
     }
     catch(err){

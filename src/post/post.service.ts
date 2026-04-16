@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Post } from './post.entity';
@@ -118,6 +118,10 @@ export class PostService {
       throw new UnauthorizedException('Access Denied: You are not authorized to delete post')
     }
 
+    if(!post.isApproved){
+      throw new BadRequestException('You can not publish a post that is not approved by an admin')
+    }
+
     post.isPublished = true
 
     await this.postRepository.save(post)
@@ -167,6 +171,25 @@ export class PostService {
     post.image = filepath
 
     await this.postRepository.save(post)
+
+    return PostMapper.toDto(post)
+  }
+
+  async approvePost(postId: number){
+    const post = await this.postRepository.findOne({
+      where: {id: postId},
+      relations: ['user']
+    })
+
+    if(!post){
+      throw new NotFoundException('Post not found')
+    }
+
+    post.isApproved = true
+
+    await this.postRepository.save(post)
+
+    console.log(post)
 
     return PostMapper.toDto(post)
   }

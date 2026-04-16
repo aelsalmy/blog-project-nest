@@ -13,6 +13,9 @@ export class Post{
   @Column({default: false})
   isPublished!: boolean
 
+  @Column({default: false})
+  isApproved!: boolean
+
   @Column({unique: false , nullable: true})
   image!: string
 

@@ -8,6 +8,9 @@ export class PostDto {
   @IsBoolean()
   isPublished!: boolean
 
+  @IsBoolean()
+  isApproved!: boolean
+
   @IsNumber()
   userId!: number
 

@@ -6,6 +6,7 @@ import { Repository } from 'typeorm';
 import jwt from 'jsonwebtoken'
 import { RefreshToken } from 'src/refreshToken/refreshToken.entity';
 import crypto from 'crypto'
+import { Role } from 'src/enumns/roles.enum';
 
 @Injectable()
 export class AuthService {
@@ -18,7 +19,10 @@ export class AuthService {
   ){}
 
   async userLogin(username:string , password: string){
-    const user = await this.userRepository.findOneBy({username})
+    const user = await this.userRepository.findOne({
+      where: {username: username},
+      relations: ['roles']
+    })
 
     if(!user){
       throw new BadRequestException('Invalid Credentials')
@@ -30,7 +34,9 @@ export class AuthService {
       throw new BadRequestException('Invalid Credentials')
     }
 
-    const newAccessToken = await this.createAccessToken(user.id)
+    const userRoles = user.roles.map((role) => role.name)
+
+    const newAccessToken = await this.createAccessToken(user.id , userRoles)
     const newRefreshToken = await this.createRefreshToken(user.id)
 
     return {accessToken: newAccessToken , refreshToken: newRefreshToken}
@@ -43,13 +49,18 @@ export class AuthService {
       throw new UnauthorizedException('Invalid Token')
     }
 
-    const user = await this.userRepository.findOneBy({id: userId})
+    const user = await this.userRepository.findOne({
+      where: {id: userId},
+      relations: ['roles']
+    })
 
     if(!user){
       throw new BadRequestException('Invalid userId')
     }
 
-    const newAccessToken = await this.createAccessToken(userId)
+    const userRoles = user.roles.map((role) => role.name)
+
+    const newAccessToken = await this.createAccessToken(userId , userRoles)
 
     return newAccessToken
   }
@@ -138,8 +149,8 @@ export class AuthService {
     return {userId:userId , tokenId: newRefreshToken.id , token: token}
   }
 
-  private async createAccessToken(userId: number){
-    const jwtToken = jwt.sign({userId: userId} , process.env.JWT_SECRET! , {
+  private async createAccessToken(userId: number , roles: string[]){
+    const jwtToken = jwt.sign({userId: userId , roles: roles} , process.env.JWT_SECRET! , {
       expiresIn: '15m'
     })
 

@@ -1,12 +1,13 @@
-import { Controller, Get, HttpStatus, Param, Query, Post, Res, UseGuards, Req, Body, Put, Delete, UseInterceptors, UploadedFile } from '@nestjs/common';
-import type { Request, Response } from 'express';
+import { Controller, Get, HttpStatus, Param, Query, Post, Res, UseGuards, Req, Body, Put, Delete, UseInterceptors } from '@nestjs/common';
+import type { Response } from 'express';
 import { PostService } from './post.service';
 import { AuthGuard } from 'src/auth/auth.guard';
 import type { AuthRequest } from 'src/auth/auth.guard';
 import { CreatePostDto } from './dto/create-post.dto';
-import { UpdatePostDto } from './dto/update-post.dto';
-import { FileInterceptor } from '@nestjs/platform-express';
 import { imageUploadInterceptor } from 'src/image-upload/imageUpload.interceptor';
+import { RolesGuard } from 'src/auth/roles.guard';
+import { Roles } from 'src/auth/role.decorator';
+import { Role } from 'src/enumns/roles.enum';
 
 @Controller('posts')
 export class PostController {
@@ -111,4 +112,24 @@ export class PostController {
 
     resp.status(HttpStatus.OK).json(newPost)
   }
+
+  @UseGuards(AuthGuard , RolesGuard)
+  @Roles(Role.ADMIN)
+  @Get('admin/test')
+  testAdmin(){
+    return 'Hello Admin!'
+  }
+
+  @UseGuards(AuthGuard , RolesGuard)
+  @Roles(Role.ADMIN)
+  @Post('/approve/:id')
+  async approvePost(
+    @Res() resp: Response,
+    @Param('id') postId: string
+  ){
+    const approvedPost = await this.postService.approvePost(Number(postId))
+
+    resp.status(HttpStatus.OK).json(approvedPost)
+  }
+
 }

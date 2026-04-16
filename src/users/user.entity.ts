@@ -1,7 +1,8 @@
-import { Column, CreateDateColumn, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn, Unique } from "typeorm";
+import { Column, CreateDateColumn, Entity, JoinColumn, JoinTable, ManyToMany, OneToMany, OneToOne, PrimaryGeneratedColumn, Unique } from "typeorm";
 import { UserProfile } from "./userProfile.entity";
 import { RefreshToken } from "src/refreshToken/refreshToken.entity";
 import { Post } from "src/post/post.entity";
+import { Role } from "src/auth/role.entity";
 
 @Entity()
 export class User {
@@ -17,6 +18,10 @@ export class User {
 
   @Column()
   hashedPassword!: string
+
+  @ManyToMany(() => Role , Role => Role.users)
+  @JoinTable({name: 'user_roles'})
+  roles!: Role[]
 
   @CreateDateColumn()
   createdAt!: Date
