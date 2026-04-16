@@ -5,6 +5,7 @@ import { Post } from './post.entity';
 import { User } from 'src/users/user.entity';
 import { PostMapper } from './post.mapper';
 import{ promises as fs } from 'fs';
+import { MailService } from 'src/mailing/mail.service';
 
 
 @Injectable()
@@ -14,7 +15,8 @@ export class PostService {
     @InjectRepository(Post)
     private readonly postRepository: Repository<Post>,
     @InjectRepository(User)
-    private readonly userRepository: Repository<User>
+    private readonly userRepository: Repository<User>,
+    private readonly mailService: MailService
   ){}
 
   async getAllPosts(page: number , limit: number){
@@ -185,12 +187,20 @@ export class PostService {
       throw new NotFoundException('Post not found')
     }
 
+    if(post.isApproved){
+      throw new BadRequestException('Post already approved!')
+    }
+
     post.isApproved = true
 
     await this.postRepository.save(post)
 
-    console.log(post)
+    await this.mailService.sendApprovalNotification(post.user.email , post.user.username , post)
 
     return PostMapper.toDto(post)
+  }
+
+  async testEmailSend(recepient: string){
+    await this.mailService.testEmail(recepient)
   }
 }

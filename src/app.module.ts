@@ -1,17 +1,14 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { UsersController } from './users/users.controller';
-import { UsersService } from './users/users.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule , ConfigService } from '@nestjs/config'
-import { AuthController } from './auth/auth.controller';
-import { AuthService } from './auth/auth.service';
-import { PostController } from './post/post.controller';
-import { PostService } from './post/post.service';
 import { UsersModule } from './users/user.module';
 import { AuthModule } from './auth/auth.module';
 import { PostModule } from './post/post.module';
+import { MailerModule } from '@nestjs-modules/mailer';
+import { join } from 'path';
+import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.adapter';
 
 @Module({
   imports: [
@@ -19,6 +16,27 @@ import { PostModule } from './post/post.module';
     AuthModule,
     PostModule,
     ConfigModule.forRoot({isGlobal: true}),
+    MailerModule.forRoot({
+        transport:{
+          host: process.env.SMTP_DEV_HOST,
+          port: process.env.SMTP_DEV_PORT,
+          secure: false,
+          auth: {
+            user: process.env.SMTP_DEV_USERNAME,
+            pass: process.env.SMTP_DEV_PASSWORD
+          },
+        } ,
+        defaults: {
+          from: '"Blog App" <no-reply@blogApp.com'   ,
+        },
+        template: {
+          dir: join(__dirname , './mailing/templates'),
+          adapter: new HandlebarsAdapter(),
+          options: {
+            strict: true
+          }
+        }
+      }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

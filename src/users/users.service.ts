@@ -6,6 +6,8 @@ import { User } from './user.entity';
 import bcrypt from 'bcrypt'
 import { UserProfile } from './userProfile.entity';
 import { UserMapper } from './user.mapper';
+import { MailService } from 'src/mailing/mail.service';
+import { Role } from 'src/auth/role.entity';
 
 @Injectable()
 export class UsersService {
@@ -14,7 +16,10 @@ export class UsersService {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     @InjectRepository(UserProfile)
-    private readonly userProfileRepository: Repository<UserProfile>
+    private readonly userProfileRepository: Repository<UserProfile>,
+    @InjectRepository(Role)
+    private readonly roleRepository: Repository<Role>,
+    private readonly mailService: MailService
   ){}
 
   async registerUser(username: string , email: string , password: string , profile: UpdateProfileDto){
@@ -46,14 +51,21 @@ export class UsersService {
     
     await this.userProfileRepository.save(newUserProfile)
 
+    const userRole = await this.roleRepository.findOne({
+      where: {name: 'User'}
+    })
+
     const newUser = this.userRepository.create({
       username: username,
       email: email,
       hashedPassword: hashedPassword,
-      userProfile: newUserProfile
+      userProfile: newUserProfile,
+      roles: [userRole!]
     })
 
     await this.userRepository.save(newUser)
+
+    await this.mailService.sendWelcomeMail(newUser.email , newUser.username)
 
     return UserMapper.toUserDto(newUser)
   }

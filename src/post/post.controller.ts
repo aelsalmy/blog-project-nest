@@ -116,8 +116,10 @@ export class PostController {
   @UseGuards(AuthGuard , RolesGuard)
   @Roles(Role.ADMIN)
   @Get('admin/test')
-  testAdmin(){
-    return 'Hello Admin!'
+  testAdmin(@Res() resp: Response){
+    this.postService.testEmailSend('test@email.com')
+
+    resp.status(HttpStatus.OK).json({message: 'done'})
   }
 
   @UseGuards(AuthGuard , RolesGuard)
