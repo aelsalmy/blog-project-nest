@@ -1,10 +1,12 @@
-import { Controller, Get, HttpStatus, Param, Query, Post, Res, UseGuards, Req, Body, Put, Delete } from '@nestjs/common';
+import { Controller, Get, HttpStatus, Param, Query, Post, Res, UseGuards, Req, Body, Put, Delete, UseInterceptors, UploadedFile } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { PostService } from './post.service';
 import { AuthGuard } from 'src/auth/auth.guard';
 import type { AuthRequest } from 'src/auth/auth.guard';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { imageUploadInterceptor } from 'src/image-upload/imageUpload.interceptor';
 
 @Controller('posts')
 export class PostController {
@@ -92,5 +94,21 @@ export class PostController {
     const userPosts = await this.postService.findUserPosts(userId)
 
     resp.status(HttpStatus.OK).json(userPosts)
+  }
+
+  @UseGuards(AuthGuard)
+  @UseInterceptors(imageUploadInterceptor())
+  @Post(':id/image')
+  async uploadImage(
+    @Req() req: AuthRequest , 
+    @Res() resp: Response,
+    @Param('id') postId: string
+  ){
+    const userId = req.userId
+    const file = req.file
+
+    const newPost = await this.postService.addPhotoToPost(userId , Number(postId) , file!.filename)
+
+    resp.status(HttpStatus.OK).json(newPost)
   }
 }

@@ -1,10 +1,11 @@
-import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Not, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Post } from './post.entity';
 import { User } from 'src/users/user.entity';
-import { UserMapper } from 'src/users/user.mapper';
 import { PostMapper } from './post.mapper';
+import{ promises as fs } from 'fs';
+
 
 @Injectable()
 export class PostService {
@@ -110,11 +111,11 @@ export class PostService {
     })
 
     if(!post){
-      throw new NotFoundException('Access Denied: You are not authorized to delete post')
+      throw new NotFoundException('Post Not Found')
     }
 
     if(post.user.id !== userId){
-      throw new UnauthorizedException('')
+      throw new UnauthorizedException('Access Denied: You are not authorized to delete post')
     }
 
     post.isPublished = true
@@ -137,5 +138,36 @@ export class PostService {
     const userPostsDto = user.posts.map((post) => PostMapper.toDto(post))
 
     return userPostsDto
+  }
+
+  async addPhotoToPost(userId:number , postId:number , filepath: string){
+    const post = await this.postRepository.findOne({
+      where: {id: postId},
+      relations: ['user']
+    })
+
+    if(!post){
+      throw new NotFoundException('Post Not Found')
+    }
+
+    if(post.user.id !== userId){
+      throw new UnauthorizedException('Access Denied: You are not authorized to delete post')
+    }
+
+    if(post.image){
+      try{
+        const filename = `./uploads/userId_${userId}/${post.image}`
+        console.log(post.image)
+        await fs.unlink(filename)
+      } catch(err: any){
+        throw new InternalServerErrorException(err.message)
+      }
+    }
+
+    post.image = filepath
+
+    await this.postRepository.save(post)
+
+    return PostMapper.toDto(post)
   }
 }

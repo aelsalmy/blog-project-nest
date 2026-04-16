@@ -1,4 +1,4 @@
-import { IsBoolean, IsNumber, IsString, MinLength } from "class-validator";
+import { IsBoolean, IsNotEmpty, IsNumber, IsString, MinLength } from "class-validator";
 
 export class PostDto {
   @IsString()
@@ -10,4 +10,7 @@ export class PostDto {
 
   @IsNumber()
   userId!: number
+
+  @IsString()
+  image!: string
 }

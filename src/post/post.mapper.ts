@@ -8,6 +8,7 @@ export class PostMapper {
     dto.content = post.content
     dto.isPublished = post.isPublished
     dto.userId = post.user.id
+    dto.image = post.image
 
     return dto
   }

@@ -13,6 +13,9 @@ export class Post{
   @Column({default: false})
   isPublished!: boolean
 
+  @Column({unique: false , nullable: true})
+  image!: string
+
   @CreateDateColumn()
   createdAt!: Date
 

@@ -4,6 +4,8 @@ import cookieParser from 'cookie-parser'
 import { ValidationPipe } from '@nestjs/common';
 import morgan from 'morgan'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { GlobalExceptionFilter } from './exception-handlers/global.handler';
+import { MulterExceptionFilter } from './exception-handlers/multer.handler';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -11,6 +13,9 @@ async function bootstrap() {
   app.use(cookieParser())
 
   app.use(morgan('dev'))
+
+  app.useGlobalFilters(new GlobalExceptionFilter())
+  app.useGlobalFilters(new MulterExceptionFilter())
 
   app.useGlobalPipes(new ValidationPipe({
     whitelist: true,
