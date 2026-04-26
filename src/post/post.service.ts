@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, InternalServerErrorException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Post } from './post.entity';
@@ -6,6 +6,7 @@ import { User } from 'src/users/user.entity';
 import { PostMapper } from './post.mapper';
 import{ promises as fs } from 'fs';
 import { MailService } from 'src/mailing/mail.service';
+import { ClientProxy } from '@nestjs/microservices';
 
 
 @Injectable()
@@ -16,7 +17,8 @@ export class PostService {
     private readonly postRepository: Repository<Post>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-    private readonly mailService: MailService
+    private readonly mailService: MailService,
+    @Inject('RABBITMQ_SERVICE') private readonly emailQueue: ClientProxy
   ){}
 
   async getAllPosts(page: number , limit: number){
@@ -195,7 +197,13 @@ export class PostService {
 
     await this.postRepository.save(post)
 
-    await this.mailService.sendApprovalNotification(post.user.email , post.user.username , post)
+    //await this.mailService.sendApprovalNotification(post.user.email , post.user.username , post)
+
+    this.emailQueue.emit('email_notifications' , {
+      recepient: post.user.email,
+      username: post.user.username,
+      post: post
+    })
 
     return PostMapper.toDto(post)
   }

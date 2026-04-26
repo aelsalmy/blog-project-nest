@@ -9,12 +9,17 @@ import { PostModule } from './post/post.module';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { join } from 'path';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.adapter';
+import { ClientsModule, Transport } from '@nestjs/microservices';
+import { MailModule } from './mailing/mail.module';
+import { RabbitMQModule } from './config/rabbitmq.module';
 
 @Module({
   imports: [
     UsersModule,
     AuthModule,
     PostModule,
+    MailModule,
+    RabbitMQModule,
     ConfigModule.forRoot({isGlobal: true}),
     MailerModule.forRoot({
         transport:{
@@ -27,7 +32,7 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.ad
           },
         } ,
         defaults: {
-          from: '"Blog App" <no-reply@blogApp.com'   ,
+          from: '"Blog App" <no-reply@blogApp.com>'   ,
         },
         template: {
           dir: join(__dirname , './mailing/templates'),

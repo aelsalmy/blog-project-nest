@@ -6,9 +6,19 @@ import morgan from 'morgan'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { GlobalExceptionFilter } from './exception-handlers/global.handler';
 import { MulterExceptionFilter } from './exception-handlers/multer.handler';
+import { Transport } from '@nestjs/microservices';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  app.connectMicroservice({
+    transport: Transport.RMQ,
+    options:{
+      urls: [`amqp://${process.env.RABBITMQ_DEFAULT_USER}:${process.env.RABBITMQ_DEFAULT_PASS}@rabbitmq:5672`],
+      queue: 'email_notifications',
+      queueOptions: {durable: true}
+    }
+  })
 
   app.use(cookieParser())
 
@@ -23,6 +33,14 @@ async function bootstrap() {
     transform: true,
   }));
 
+  app.connectMicroservice({
+    transport: Transport.RMQ,
+    options: {
+      urls: [`amqp://${process.env.RABBITMQ_DEFAULT_USER}:${process.env.RABBITMQ_DEFAULT_PASS}@rabbitmq:5672`],
+      queue: 'email_notifications',
+    }
+  })
+
   const options = new DocumentBuilder()
     .setTitle('Blog App')
     .setDescription('API description')
@@ -30,6 +48,8 @@ async function bootstrap() {
     .build();
   const document = SwaggerModule.createDocument(app, options);
   SwaggerModule.setup('api', app, document);
+
+  await app.startAllMicroservices()
 
   await app.listen(process.env.PORT ?? 3000);
 }
