@@ -14,6 +14,10 @@ export class GlobalExceptionFilter implements ExceptionFilter{
 
     if(exception instanceof HttpException){
       status = exception.getStatus()
+      const response = exception.getResponse()
+      return resp.status(status).json(
+        typeof response === 'string' ? { message: response } : response
+      )
     }
 
     return resp.status(status)
