@@ -1,0 +1,33 @@
+name: Deploy to EC2
+
+on: 
+  push:
+    branches:
+      - week4-proj
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via ssh
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          envs: BRANCH
+          script: |
+            set -e
+            cd blog-project-nest
+
+            echo "Current branch: $BRANCH"
+
+            git fetch origin
+            git checkout -B "$BRANCH" "origin/$BRANCH"
+
+            docker compose down
+            docker compose up -d --build
+            
+        env:
+          BRANCH: ${{ github.ref_name }}
