@@ -4,10 +4,12 @@ import { PostService } from './post.service';
 import { AuthGuard } from 'src/auth/auth.guard';
 import type { AuthRequest } from 'src/auth/auth.guard';
 import { CreatePostDto } from './dto/create-post.dto';
-import { imageUploadInterceptor } from 'src/image-upload/imageUpload.interceptor';
 import { RolesGuard } from 'src/auth/roles.guard';
 import { Roles } from 'src/auth/role.decorator';
 import { Role } from 'src/enumns/roles.enum';
+import { memoryStorage, MulterError } from 'multer';
+import { FileInterceptor } from '@nestjs/platform-express';
+
 
 @Controller('posts')
 export class PostController {
@@ -23,13 +25,6 @@ export class PostController {
     const posts = await this.postService.getAllPosts(Number(page) , Number(limit))
 
     resp.status(HttpStatus.OK).json(posts)
-  }
-
-  @Get('/:id')
-  async getPostById(@Param('id') id: string , @Res() resp: Response){
-    const post = await this.postService.getPostById(Number(id))
-    
-    resp.status(HttpStatus.OK).json(post) 
   }
 
   @UseGuards(AuthGuard)
@@ -98,7 +93,17 @@ export class PostController {
   }
 
   @UseGuards(AuthGuard)
-  @UseInterceptors(imageUploadInterceptor())
+  @UseInterceptors(
+    FileInterceptor('file', { 
+      storage: memoryStorage(), 
+      limits: { fileSize: 5 * 1024 * 1024 } ,
+      fileFilter: ( _ , file, cb) => {
+        if (!file.mimetype.startsWith('image/')) {
+          return cb(new MulterError('LIMIT_UNEXPECTED_FILE'), false)
+        }
+        cb(null, true)
+      }
+    }))
   @Post(':id/image')
   async uploadImage(
     @Req() req: AuthRequest , 
@@ -108,7 +113,9 @@ export class PostController {
     const userId = req.userId
     const file = req.file
 
-    const newPost = await this.postService.addPhotoToPost(userId , Number(postId) , file!.filename)
+    if (!file) return resp.status(HttpStatus.BAD_REQUEST).json({ message: 'No file provided' })
+
+    const newPost = await this.postService.addPhotoToPost(userId , Number(postId) , file!)
 
     resp.status(HttpStatus.OK).json(newPost)
   }
@@ -134,4 +141,10 @@ export class PostController {
     resp.status(HttpStatus.OK).json(approvedPost)
   }
 
+  @Get('/:id')
+  async getPostById(@Param('id') id: string , @Res() resp: Response){
+    const post = await this.postService.getPostById(Number(id))
+    
+    resp.status(HttpStatus.OK).json(post) 
+  }
 }

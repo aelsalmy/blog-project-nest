@@ -13,13 +13,11 @@ import { Role } from 'src/auth/role.entity';
 export class UsersService {
   
   constructor(
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
-    @InjectRepository(UserProfile)
-    private readonly userProfileRepository: Repository<UserProfile>,
-    @InjectRepository(Role)
-    private readonly roleRepository: Repository<Role>,
-    private readonly mailService: MailService
+    @InjectRepository(User) private readonly userRepository: Repository<User>,
+    @InjectRepository(UserProfile) private readonly userProfileRepository: Repository<UserProfile>,
+    @InjectRepository(Role) private readonly roleRepository: Repository<Role>,
+    private readonly mailService: MailService,
+    private readonly userMapper: UserMapper
   ){}
 
   async registerUser(username: string , email: string , password: string , profile: UpdateProfileDto){
@@ -67,7 +65,7 @@ export class UsersService {
 
     await this.mailService.sendWelcomeMail(newUser.email , newUser.username)
 
-    return UserMapper.toUserDto(newUser)
+    return this.userMapper.toUserDto(newUser)
   }
 
   async getUserProfile(userId: number){

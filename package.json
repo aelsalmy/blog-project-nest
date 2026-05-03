@@ -25,6 +25,8 @@
     "migration:show": "typeorm-ts-node-commonjs migration:show -d src/config/AppDataSource.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1041.0",
+    "@aws-sdk/s3-request-presigner": "^3.1041.0",
     "@nestjs-modules/mailer": "^2.3.4",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.4",

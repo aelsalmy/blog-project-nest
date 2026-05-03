@@ -15,5 +15,5 @@ export class PostDto {
   userId!: number
 
   @IsString()
-  image!: string
+  image!: string | null
 }

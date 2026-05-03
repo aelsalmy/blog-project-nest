@@ -4,21 +4,23 @@ import { Repository } from 'typeorm';
 import { Post } from './post.entity';
 import { User } from 'src/users/user.entity';
 import { PostMapper } from './post.mapper';
-import{ promises as fs } from 'fs';
 import { MailService } from 'src/mailing/mail.service';
 import { ClientProxy } from '@nestjs/microservices';
+import { S3Service } from 'src/image-upload/s3.service';
+import { randomUUID } from 'crypto';
+import { extname } from 'path';
 
 
 @Injectable()
 export class PostService {
 
   constructor(
-    @InjectRepository(Post)
-    private readonly postRepository: Repository<Post>,
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
+    @InjectRepository(Post) private readonly postRepository: Repository<Post>,
+    @InjectRepository(User) private readonly userRepository: Repository<User>,
     private readonly mailService: MailService,
-    @Inject('RABBITMQ_SERVICE') private readonly emailQueue: ClientProxy
+    @Inject('RABBITMQ_SERVICE') private readonly emailQueue: ClientProxy,
+    private readonly s3Service: S3Service,
+    private readonly postMapper: PostMapper
   ){}
 
   async getAllPosts(page: number , limit: number){
@@ -28,7 +30,7 @@ export class PostService {
       relations: ['user']
     })
 
-    const postDtos = postPage.map((post) => PostMapper.toDto(post))
+    const postDtos = await Promise.all(postPage.map((post) => this.postMapper.toDto(post)))
 
     return {
       posts: postDtos,
@@ -48,7 +50,7 @@ export class PostService {
       throw new NotFoundException('No Post with this id exists')
     }
 
-    return PostMapper.toDto(post)
+    return await this.postMapper.toDto(post)
   }
 
   async createPost(userId: number , content: string){
@@ -65,7 +67,7 @@ export class PostService {
 
     await this.postRepository.save(newPost)
 
-    return PostMapper.toDto(newPost)
+    return await this.postMapper.toDto(newPost)
   }
 
   async updatePost(userId: number , postId:number , content: string){
@@ -86,7 +88,7 @@ export class PostService {
 
     await this.postRepository.save(oldPost)
   
-    return PostMapper.toDto(oldPost)
+    return await this.postMapper.toDto(oldPost)
   }
 
   async deletePost(userId: number, postId: number){
@@ -105,7 +107,11 @@ export class PostService {
 
     await this.postRepository.remove(oldPost)
 
-    return PostMapper.toDto(oldPost)
+    if (oldPost.image) {
+      await this.s3Service.deleteFile(oldPost.image).catch(() => {})
+    }
+
+    return await this.postMapper.toDto(oldPost)
   }
 
   async publishPost(userId: number , postId: number){
@@ -119,7 +125,7 @@ export class PostService {
     }
 
     if(post.user.id !== userId){
-      throw new UnauthorizedException('Access Denied: You are not authorized to delete post')
+      throw new UnauthorizedException('Access Denied: You are not authorized to publish post')
     }
 
     if(!post.isApproved){
@@ -130,7 +136,7 @@ export class PostService {
 
     await this.postRepository.save(post)
   
-    return PostMapper.toDto(post)
+    return await this.postMapper.toDto(post)
   }
 
   async findUserPosts(userId: number){
@@ -143,12 +149,12 @@ export class PostService {
       throw new NotFoundException('User Not Found')
     }
 
-    const userPostsDto = user.posts.map((post) => PostMapper.toDto(post))
+    const userPostsDto = await Promise.all(user.posts.map((post) => this.postMapper.toDto(post)))
 
     return userPostsDto
   }
 
-  async addPhotoToPost(userId:number , postId:number , filepath: string){
+  async addPhotoToPost(userId:number , postId:number , file: Express.Multer.File){
     const post = await this.postRepository.findOne({
       where: {id: postId},
       relations: ['user']
@@ -159,24 +165,25 @@ export class PostService {
     }
 
     if(post.user.id !== userId){
-      throw new UnauthorizedException('Access Denied: You are not authorized to delete post')
+      throw new UnauthorizedException('Access Denied: You are not authorized to access post')
     }
 
-    if(post.image){
-      try{
-        const filename = `./uploads/userId_${userId}/${post.image}`
-        console.log(post.image)
-        await fs.unlink(filename)
-      } catch(err: any){
-        throw new InternalServerErrorException(err.message)
-      }
+    const newFilename = `userId_${userId}/${randomUUID()}` + extname(file.originalname)
+
+    try{
+      await this.s3Service.uploadFile(file , newFilename)
+    } catch(err: any){
+      throw new InternalServerErrorException(err.message)
     }
 
-    post.image = filepath
+    if (post.image) {
+      await this.s3Service.deleteFile(post.image).catch(() => {})
+    }
 
+    post.image = newFilename
     await this.postRepository.save(post)
 
-    return PostMapper.toDto(post)
+    return await this.postMapper.toDto(post)
   }
 
   async approvePost(postId: number){
@@ -197,15 +204,13 @@ export class PostService {
 
     await this.postRepository.save(post)
 
-    //await this.mailService.sendApprovalNotification(post.user.email , post.user.username , post)
-
     this.emailQueue.emit('email_notifications' , {
       recepient: post.user.email,
       username: post.user.username,
       post: post
     })
 
-    return PostMapper.toDto(post)
+    return await this.postMapper.toDto(post)
   }
 
   async testEmailSend(recepient: string){
