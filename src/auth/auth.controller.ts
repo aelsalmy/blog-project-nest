@@ -1,8 +1,9 @@
-import { Controller, HttpStatus, Post , Res , Req, Body } from '@nestjs/common';
+import { Controller, HttpStatus, Post , Res , Req, Body, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import type { Response , Request } from 'express';
 import { RefreshToken } from 'src/refreshToken/refreshToken.entity';
 import { UserLoginDto } from 'src/users/dtos/user-login.dto';
+import { AuthGuard } from './auth.guard';
 
 
 @Controller('auth')
@@ -43,6 +44,7 @@ export class AuthController {
   }
 
   @Post('signout')
+  @UseGuards(AuthGuard)
   async userSignout(@Req() req: Request , @Res() resp: Response){
     const {tokenId , token , userId} = req.cookies['refreshToken']
 
@@ -55,5 +57,4 @@ export class AuthController {
     }).status(HttpStatus.OK)
       .json({message: "User Signed Out Successfully"})
   }
-
 }
