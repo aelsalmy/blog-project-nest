@@ -143,25 +143,32 @@ export class PostService {
     return await this.postMapper.toDto(post)
   }
 
-  async findUserPosts(userId: number){
+  async findUserPosts(userId: number , page: number , limit: number){
     const user = await this.userRepository.findOne({
       where: {id: userId},
-      relations: ['posts' , 'posts.user'],
     })
 
     if(!user){
       throw new NotFoundException('User Not Found')
     }
 
-    const orderedPosts = [...user.posts].sort(
-      (a, b) =>
-        new Date(b.updatedAt).getTime() -
-        new Date(a.updatedAt).getTime()
-    );
+    const [postPage , total] = await this.postRepository.findAndCount({
+      where: {user: user},
+      skip: (page - 1) * limit,
+      take: limit,
+      order:{
+        updatedAt: "DESC"
+      }
+    })
 
-    const userPostsDto = await Promise.all(orderedPosts.map((post) => this.postMapper.toDto(post)))
+    const postDtos = await Promise.all(postPage.map((post) => this.postMapper.toDto(post)))
 
-    return userPostsDto
+    return {
+      posts: postDtos,
+      total,
+      page,
+      lastPage: Math.ceil(total / limit)
+    }
   }
 
   async addPhotoToPost(userId:number , postId:number , file: Express.Multer.File){

@@ -18,6 +18,7 @@ export class PostMapper {
     dto.isPublished = post.isPublished
     dto.userId = post.user.id
     dto.isApproved = post.isApproved
+    dto.user = post.user
 
     dto.image = post.image ? (await this.s3Service.getSignedUrl(post.image)).url : null
 

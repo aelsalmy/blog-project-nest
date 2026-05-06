@@ -84,10 +84,15 @@ export class PostController {
 
   @UseGuards(AuthGuard)
   @Get('/user/myPosts')
-  async getUserPosts(@Req() req: AuthRequest , @Res() resp: Response){
+  async getUserPosts(
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+    @Req() req: AuthRequest , 
+    @Res() resp: Response
+  ){
     const userId = req.userId
     
-    const userPosts = await this.postService.findUserPosts(userId)
+    const userPosts = await this.postService.findUserPosts(userId , Number(page) , Number(limit))
 
     resp.status(HttpStatus.OK).json(userPosts)
   }
