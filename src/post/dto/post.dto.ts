@@ -1,5 +1,5 @@
 import { IsBoolean, IsNotEmpty, IsNumber, IsString, MinLength } from "class-validator";
-import { User } from "src/users/user.entity";
+import { UserDto } from "src/users/dtos/user-dto";
 
 export class PostDto {
   @IsString()
@@ -22,5 +22,5 @@ export class PostDto {
   id!: number
 
   @IsNotEmpty()
-  user!: User
+  user!: UserDto
 }
