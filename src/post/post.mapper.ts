@@ -13,6 +13,7 @@ export class PostMapper {
   async toDto(post: Post){
     const dto = new PostDto()
 
+    dto.id = post.id
     dto.content = post.content
     dto.isPublished = post.isPublished
     dto.userId = post.user.id

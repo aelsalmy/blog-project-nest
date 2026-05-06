@@ -16,4 +16,7 @@ export class PostDto {
 
   @IsString()
   image!: string | null
+
+  @IsNotEmpty()
+  id!: number
 }
