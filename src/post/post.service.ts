@@ -25,9 +25,13 @@ export class PostService {
 
   async getAllPosts(page: number , limit: number){
     const [postPage , total] = await this.postRepository.findAndCount({
+      //where: {isApproved: true},
       skip: (page - 1) * limit,
       take: limit,
-      relations: ['user']
+      relations: ['user'],
+      order:{
+        updatedAt: "DESC"
+      }
     })
 
     const postDtos = await Promise.all(postPage.map((post) => this.postMapper.toDto(post)))
@@ -142,14 +146,20 @@ export class PostService {
   async findUserPosts(userId: number){
     const user = await this.userRepository.findOne({
       where: {id: userId},
-      relations: ['posts' , 'posts.user']
+      relations: ['posts' , 'posts.user'],
     })
 
     if(!user){
       throw new NotFoundException('User Not Found')
     }
 
-    const userPostsDto = await Promise.all(user.posts.map((post) => this.postMapper.toDto(post)))
+    const orderedPosts = [...user.posts].sort(
+      (a, b) =>
+        new Date(b.updatedAt).getTime() -
+        new Date(a.updatedAt).getTime()
+    );
+
+    const userPostsDto = await Promise.all(orderedPosts.map((post) => this.postMapper.toDto(post)))
 
     return userPostsDto
   }
