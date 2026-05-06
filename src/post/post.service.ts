@@ -9,6 +9,7 @@ import { ClientProxy } from '@nestjs/microservices';
 import { S3Service } from 'src/image-upload/s3.service';
 import { randomUUID } from 'crypto';
 import { extname } from 'path';
+import { Console } from 'console';
 
 
 @Injectable()
@@ -151,16 +152,19 @@ export class PostService {
     if(!user){
       throw new NotFoundException('User Not Found')
     }
-
+    
     const [postPage , total] = await this.postRepository.findAndCount({
-      where: {user: user},
+      where: {
+        user: {id: userId}
+      },
       skip: (page - 1) * limit,
       take: limit,
+      relations: ['user'],
       order:{
         updatedAt: "DESC"
       }
     })
-
+    
     const postDtos = await Promise.all(postPage.map((post) => this.postMapper.toDto(post)))
 
     return {
