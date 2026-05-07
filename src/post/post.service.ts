@@ -26,7 +26,13 @@ export class PostService {
 
   async getAllPosts(page: number , limit: number){
     const [postPage , total] = await this.postRepository.findAndCount({
-      //where: {isApproved: true},
+      where: {isPublished: true},
+      /*
+      where: {
+        isPublished: true,
+        isApproved: true
+      }
+      */
       skip: (page - 1) * limit,
       take: limit,
       relations: ['user'],
