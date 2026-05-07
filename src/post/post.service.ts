@@ -133,10 +133,6 @@ export class PostService {
       throw new UnauthorizedException('Access Denied: You are not authorized to publish post')
     }
 
-    if(!post.isApproved){
-      throw new BadRequestException('You can not publish a post that is not approved by an admin')
-    }
-
     post.isPublished = true
 
     await this.postRepository.save(post)
