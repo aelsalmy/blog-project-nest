@@ -81,6 +81,19 @@ export class UsersService {
     return user.userProfile
   }
 
+  async getUserAccount(userId: number){
+    const user = await this.userRepository.findOne({
+      where: {id: userId},
+      relations: ['userProfile']
+    })
+
+    if(!user){
+      throw new NotFoundException('User Not Found')
+    }
+
+    return this.userMapper.toUserDto(user)
+  }
+
   async updateUserProfile(userId: number , profession: string , city: string , country: string){
     const user = await this.userRepository.findOne({
       where: {id: userId},

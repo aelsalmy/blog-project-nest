@@ -109,6 +109,7 @@ export class PostController {
         cb(null, true)
       }
     }))
+    
   @Post(':id/image')
   async uploadImage(
     @Req() req: AuthRequest , 

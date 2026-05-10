@@ -21,13 +21,21 @@ export class UsersController {
   }
 
   @UseGuards(AuthGuard)
+  @Get()
+  async getUserAccount(@Req() request: AuthRequest , @Res() resp: Response){
+    const userId = request.userId
+
+    const user = await this.usersService.getUserAccount(userId)
+
+    resp.status(HttpStatus.OK).json(user)
+  }
+
+  @UseGuards(AuthGuard)
   @Get('profile')
   async getUserProfile(@Req() request: AuthRequest , @Res() resp: Response){
     const userId = request.userId
 
     const userProfile = await this.usersService.getUserProfile(userId)
-
-    console.log(userProfile)
 
     resp.status(HttpStatus.OK).json(userProfile)
   }
