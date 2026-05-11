@@ -27,6 +27,20 @@ export class PostController {
     resp.status(HttpStatus.OK).json(posts)
   }
 
+
+  @UseGuards(AuthGuard , RolesGuard)
+  @Roles(Role.ADMIN)
+  @Get('/notApproved')
+  async getUnapprovedPosts(
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+    @Res() resp: Response
+  ){
+    const posts = await this.postService.getUnapprovedPosts(Number(page) , Number(limit))
+
+    resp.status(HttpStatus.OK).json(posts)
+  }
+
   @UseGuards(AuthGuard)
   @Post()
   async createPost(@Req() req: AuthRequest , @Body() body: CreatePostDto , @Res() resp: Response){

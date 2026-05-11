@@ -51,6 +51,27 @@ export class PostService {
     }
   }
 
+   async getUnapprovedPosts(page: number , limit: number){
+    const [postPage , total] = await this.postRepository.findAndCount({
+      where: {isApproved: false},
+      skip: (page - 1) * limit,
+      take: limit,
+      relations: ['user'],
+      order:{
+        updatedAt: "DESC"
+      }
+    })
+
+    const postDtos = await Promise.all(postPage.map((post) => this.postMapper.toDto(post)))
+
+    return {
+      posts: postDtos,
+      total,
+      page,
+      lastPage: Math.ceil(total / limit)
+    }
+  }
+
   async getPostById(postId: number){
     const post = await this.postRepository.findOne({
       where: {id: postId},
